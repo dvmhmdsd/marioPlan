@@ -1,21 +1,53 @@
-import React from 'react'
+import React from 'react';
+import { compose } from 'redux';
+import { connect } from 'react-redux';
+import { firestoreConnect } from 'react-redux-firebase';
+import {Redirect} from 'react-router-dom';
+import moment from 'moment';
+
 
 const ProjectDetails = (props) => {
-    const id = props.match.params.id;
-    return (
-        <div className="container section project-details">
-            <div className="card z-depth-0">
-                <div className="card-content">
-                    <span className="card-title">Project Name - {id}</span>
-                    <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Laborum doloremque explicabo voluptas possimus est, pariatur ratione tempore commodi quas deleniti accusantium perspiciatis distinctio enim! Tempore modi quasi aliquid vero! Expedita nobis impedit repellat ullam voluptates suscipit harum nihil ipsum? Iste!</p>
-                </div>
-                <div className="card-action grey lighten-4 grey-text">
-                    <p>posted by MS</p>
-                    <p>23 Dec, 2am</p>
+    const {project, auth} = props;
+    if (!auth.uid) return <Redirect to='/signin' />
+    if (project) {
+        return (
+            <div className="container section project-details">
+                <div className="card z-depth-0">
+                    <div className="card-content">
+                        <span className="card-title">{project.title}</span>
+                        <p>{project.content}</p>
+                    </div>
+                    <div className="card-action grey lighten-4 grey-text">
+                        <p>posted by {project.authorFirstName} {project.authorLastName}</p>
+                        <p>
+                            {moment(project.createdAt.toDate()).calendar()}
+                        </p>
+                    </div>
                 </div>
             </div>
-        </div>
-    )
+        )
+    } else {
+        return (
+            <div className="container center">
+                <p>Loading ...</p>
+            </div>
+        )
+    }
 }
 
-export default ProjectDetails;
+const mapStateToProps = (state, ownProps) => {
+    const id = ownProps.match.params.id;
+    const projects = state.firestore.data.projects;
+    const project = projects ? projects[id] : null;
+    return {
+        project: project,
+        auth: state.firebase.auth
+    }
+}
+
+export default compose(
+    connect(mapStateToProps),
+    firestoreConnect([
+        { collection: 'projects' }
+    ])
+)(ProjectDetails);
